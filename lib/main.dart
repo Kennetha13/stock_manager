@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:stock_mananger_1/inventory_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -29,20 +36,23 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
+  void goToInventory(){
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const InventoryPage(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: Colors.lightGreen,
+      backgroundColor: Colors.green,
         body: Center(
           child: Container(
-            width: 400,
-            height: 500, // 👈 fixed height
-            margin: EdgeInsets.only(
-              left: 30,
-              right: 30,
-            ),
+            width: 350,
+            height: 500,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -55,8 +65,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     top: 30,
                   ),
                   child: Icon(
-                    Icons.favorite,
-                    color: Colors.pink,
+                    Icons.shelves,
+                    color: Colors.green,
                     size: 100.0,
                   ),
                 ),
@@ -65,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
-                        color: Colors.lightGreen,
+                        color: Colors.green,
                     ),
                 ),
                 Text(
@@ -97,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                 Text('Forgot Password?',
                     style: TextStyle(
-                        color: Colors.lightGreen
+                        color: Colors.green
                     )
                 ),
 
@@ -106,14 +116,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   width: 125,
                   child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.lightGreen
+                          backgroundColor: Colors.green
                       ),
-                      onPressed: () {
-                      },
+                      onPressed: goToInventory,
                       child: Text('Login',
                           style: TextStyle(
                               fontSize: 20,
-                              color: Colors.black
+                              color: Colors.white
                           )
                       )
                   ),
