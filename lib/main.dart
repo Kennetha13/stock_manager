@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:stock_mananger_1/inventory_page.dart';
+import 'inventory_page.dart';
+import 'employee_dash.dart';
+import'manager_dash.dart';
+import'access_code_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -10,6 +13,7 @@ Future<void> main() async {
   );
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -36,10 +40,59 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  void goToInventory(){
+  String selectedRole = "employee";
+
+  void goToPage(Widget page) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const InventoryPage(),
+      MaterialPageRoute(
+        builder: (context) => page,
+      ),
+    );
+  }
+
+  Widget getDashboardPage() {
+    return selectedRole == "employee"
+        ? const AccessCodePage()
+        : const ManagerDashPage();
+  }
+
+  Widget _buildRoleButton(String roleValue, String label) {
+    const green = Colors.green;
+
+    final bool isSelected = selectedRole == roleValue;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedRole = roleValue;
+        });
+      },
+      child: Container(
+        height: 55,
+        width: 146,
+        decoration: BoxDecoration(
+          color: isSelected ? green : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: green, width: 2),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_outline,
+              color: isSelected ? Colors.white : green,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : green,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -52,7 +105,7 @@ class _MyHomePageState extends State<MyHomePage> {
         body: Center(
           child: Container(
             width: 350,
-            height: 500,
+            height: 600,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -85,8 +138,33 @@ class _MyHomePageState extends State<MyHomePage> {
                     color: Colors.grey,
                   ),
                 ),
+
+                const SizedBox(height: 10),
+
+                Text(
+                  'Login as:',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
                 Container(
-                  margin: EdgeInsets.all(25),
+                  margin: EdgeInsets.only(top: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildRoleButton("employee", "Employee"),
+                      const SizedBox(width: 15),
+                      _buildRoleButton("manager", "Manager"),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                Container(
+                  margin: EdgeInsets.only(left:25, right:25),
                   child: TextField(
                     obscureText: false,
                     decoration: InputDecoration(
@@ -94,6 +172,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         labelText: 'Email'),
                   ),
                 ),
+
+                const SizedBox(height: 25),
 
                 Container(
                   margin: EdgeInsets.only(left: 25, right: 25, bottom: 5),
@@ -111,14 +191,20 @@ class _MyHomePageState extends State<MyHomePage> {
                     )
                 ),
 
+                const SizedBox(height: 10),
+
                 Container(
                   margin: EdgeInsets.only(top: 30),
-                  width: 125,
+                  width: 300,
+                  height: 60,
                   child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          )
                       ),
-                      onPressed: goToInventory,
+                      onPressed: () => goToPage(getDashboardPage()),
                       child: Text('Login',
                           style: TextStyle(
                               fontSize: 20,

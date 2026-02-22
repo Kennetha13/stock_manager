@@ -1,0 +1,298 @@
+import'package:flutter/material.dart';
+
+class ManagerDashPage extends StatefulWidget {
+  const ManagerDashPage({super.key});
+
+  @override
+  State<ManagerDashPage> createState() => _ManagerDashPageState();
+}
+
+class _ManagerDashPageState extends State<ManagerDashPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        title: Text(
+          'Manager Dashboard',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.green,
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 20,
+            child: Container(
+              margin: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: const Color(0xFFC8E6C9),
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.green,
+                        size: 60,
+                      ),
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 30),
+                      Text(
+                        'Welcome back,',
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.grey
+                        )
+                      ),
+                      Text(
+                        'Manager',
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            ),
+          ),
+
+          Padding(
+            padding: EdgeInsets.only(left: 20),
+            child: Text(
+              'Quick Actions',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+
+          Expanded(
+            flex: 30,
+            child: Container(
+              margin: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start, // left
+                crossAxisAlignment: CrossAxisAlignment.center, // top
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: const Color(0xFFC8E6C9),
+                      child: Icon(
+                        Icons.shelves,
+                        color: Colors.green,
+                        size: 50,
+                      ),
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Check Inventory',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 160, // adjust as needed
+                        child: Text(
+                          'View and manage all products in stock.',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(width: 35),
+
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: Colors.green,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        // Handle button press
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          Expanded(
+            flex: 30,
+            child: Container(
+              margin: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start, // left
+                crossAxisAlignment: CrossAxisAlignment.center, // top
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: const Color(0xFFFFF3E0),
+                      child: Icon(
+                        Icons.edit_document,
+                        color: Colors.orange,
+                        size: 50,
+                      ),
+                    ),
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Generate Reports',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 160, // adjust as needed
+                        child: Text(
+                          'View employee hours, tips, and performance.',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(width: 35),
+
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: Colors.orange,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        // Handle button press
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          Expanded(
+            flex: 20,
+            child: Container(
+              margin: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start, // left
+                crossAxisAlignment: CrossAxisAlignment.center, // top
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircleAvatar(
+                      radius: 35,
+                      backgroundColor: Colors.blue[100],
+                      child: Icon(
+                        Icons.people_rounded,
+                        color: Colors.blue,
+                        size: 40,
+                      ),
+                    ),
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Employee Status',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 160, // adjust as needed
+                        child: Text(
+                          'View and edit company employees.',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(width: 35),
+
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: Colors.blue,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        // Handle button press
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      )
+    );
+  }
+}
+
