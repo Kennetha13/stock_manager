@@ -1,5 +1,6 @@
 import'package:flutter/material.dart';
 import 'package:stock_mananger_1/employee_dash.dart';
+import 'navigator_helper.dart';
 
 class AccessCodePage extends StatefulWidget {
   const AccessCodePage({super.key});
@@ -23,13 +24,6 @@ class _AccessCodePageState extends State<AccessCodePage> {
   Widget build(BuildContext context) {
     final code = _controller.text;
 
-    void goToPage(Widget page) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => page,
-        ),
-      );
-    }
 
     return Scaffold(
       backgroundColor: Colors.green,
@@ -151,7 +145,7 @@ class _AccessCodePageState extends State<AccessCodePage> {
                           borderRadius: BorderRadius.circular(8.0),
                         )
                     ),
-                    onPressed: () => goToPage(EmployeeDashPage()),
+                    onPressed: () => goToPage(context, EmployeeDashPage()),
                     child: Text('Continue',
                         style: TextStyle(
                             fontSize: 20,
