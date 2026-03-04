@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stock_mananger_1/employee_signup_page.dart';
 import 'manager_signup_page.dart';
 import 'navigator_helper.dart';
 
@@ -293,7 +294,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
-                            onPressed: null,
+                            onPressed: () => goToPage(context, EmployeeSignUpPage()),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Color(0xFF43A047), width: 2),
                               padding: const EdgeInsets.symmetric(vertical: 14),

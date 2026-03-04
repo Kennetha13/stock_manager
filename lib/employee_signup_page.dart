@@ -1,77 +1,41 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import'main.dart';
+import 'access_code_page.dart';
 
-import 'navigator_helper.dart';
-import 'main.dart';
-import 'manager_dash.dart'; // <-- uncomment and use if you want to navigate after signup
-
-class ManagerSignUpPage extends StatefulWidget {
-  const ManagerSignUpPage({super.key});
-
+class EmployeeSignUpPage extends StatefulWidget {
+  const EmployeeSignUpPage({super.key});
   @override
-  State<ManagerSignUpPage> createState() => _ManagerSignUpPageState();
+  State<EmployeeSignUpPage> createState() => _EmployeeSignUpPageState();
 }
 
-class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
+class _EmployeeSignUpPageState extends State<EmployeeSignUpPage> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _companyNameController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
-
-  // Firebase
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-
   bool _loading = false;
   String? _errorMessage;
+
+  final _auth = FirebaseAuth.instance;
+  final _db = FirebaseFirestore.instance;
 
   @override
   void dispose() {
     _fullNameController.dispose();
     _emailController.dispose();
-    _companyNameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  String _generateAccessCode({int length = 4}) {
-    // Avoid confusing characters like O/0 and I/1
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    final rand = Random();
-    return List
-        .generate(length, (_) => chars[rand.nextInt(chars.length)])
-        .join();
-  }
-
-  Future<String> _reserveUniqueAccessCode(String companyId) async {
-    // Uses a dedicated collection so codes are unique and lookup is fast:
-    // accessCodes/{CODE} -> { companyId }
-    while (true) {
-      final code = _generateAccessCode(length: 4);
-      final codeRef = _db.collection("accessCodes").doc(code);
-      final snap = await codeRef.get();
-      if (!snap.exists) {
-        await codeRef.set({
-          "companyId": companyId,
-          "createdAt": FieldValue.serverTimestamp(),
-        });
-        return code;
-      }
-    }
-  }
-
-  Future<void> _createManagerAccount() async {
-    final fullName = _fullNameController.text.trim();
+  Future<void> _createEmployeeAccount() async {
+    final name = _fullNameController.text.trim();
     final email = _emailController.text.trim();
-    final companyName = _companyNameController.text.trim();
     final password = _passwordController.text;
 
-    if (fullName.isEmpty || email.isEmpty || companyName.isEmpty ||
-        password.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() => _errorMessage = "Please fill out all fields.");
       return;
     }
@@ -89,53 +53,23 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
       );
       final uid = cred.user!.uid;
 
-      // 2) Create company
-      final companyRef = _db.collection("companies").doc();
-      final companyId = companyRef.id;
-
-      // Reserve unique access code (writes into accessCodes collection)
-      final accessCode = await _reserveUniqueAccessCode(companyId);
-
-      // 3) Write company + user profile in a batch
-      final batch = _db.batch();
-
-      batch.set(companyRef, {
-        "name": companyName,
-        "accessCode": accessCode,
-        "ownerUid": uid,
-        "createdAt": FieldValue.serverTimestamp(),
-      });
-
-      batch.set(_db.collection("users").doc(uid), {
-        "name": fullName,
+      // 2) Create user profile in Firestore (companyId blank until access code step)
+      await _db.collection("users").doc(uid).set({
+        "name": name,
         "email": email,
-        "role": "manager",
-        "companyId": companyId,
+        "role": "employee",
+        "companyId": "", // set later when they enter access code
         "createdAt": FieldValue.serverTimestamp(),
       });
 
-      await batch.commit();
-
+      // ✅ Fix async gap: don't use context if widget disposed
       if (!mounted) return;
 
-      // Show access code (you can also navigate and show it on dashboard)
-      // showDialog(
-      //   context: context,
-      //   builder: (_) => AlertDialog(
-      //     title: const Text("Company created!"),
-      //     content: Text("Employee access code: $accessCode"),
-      //     actions: [
-      //       TextButton(
-      //         onPressed: () => Navigator.of(context).pop(),
-      //         child: const Text("OK"),
-      //       ),
-      //     ],
-      //   ),
-      // );
-
-      // Optional navigation after dialog:
+      // 3) Go to access code page (employees enter it once)
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => const ManagerDashPage()));
+        context,
+        MaterialPageRoute(builder: (_) => const AccessCodePage()),
+      );
     } on FirebaseAuthException catch (e) {
       setState(() => _errorMessage = e.message ?? e.code);
     } catch (_) {
@@ -176,7 +110,7 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                     ),
                     const Expanded(
                       child: Text(
-                        'Manager Sign Up',
+                        'Employee Sign Up',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
@@ -201,7 +135,7 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Set up your company on Stock Manager',
+                  "You'll join your company in the next step",
                   style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
 
@@ -235,59 +169,19 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                         TextField(
                           controller: _fullNameController,
                           decoration: InputDecoration(
-                            hintText: 'Kenneth Ang',
-                            prefixIcon: const Icon(
-                                Icons.person_outline, color: Colors.grey),
+                            hintText: 'John Smith',
+                            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFFBDBDBD)),
+                              borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFFBDBDBD)),
+                              borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFF388E3C), width: 2),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 25),
-
-                        // Company Name
-                        const Text(
-                          'Company Name',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF424242),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: _companyNameController,
-                          decoration: InputDecoration(
-                            hintText: 'Acme Corp',
-                            prefixIcon: const Icon(
-                                Icons.business_outlined, color: Colors.grey),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFFBDBDBD)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFFBDBDBD)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFF388E3C), width: 2),
+                              borderSide: const BorderSide(color: Color(0xFF388E3C), width: 2),
                             ),
                           ),
                         ),
@@ -309,22 +203,18 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             hintText: 'you@email.com',
-                            prefixIcon: const Icon(
-                                Icons.email_outlined, color: Colors.grey),
+                            prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFFBDBDBD)),
+                              borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFFBDBDBD)),
+                              borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFF388E3C), width: 2),
+                              borderSide: const BorderSide(color: Color(0xFF388E3C), width: 2),
                             ),
                           ),
                         ),
@@ -346,8 +236,7 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
                             hintText: '••••••••',
-                            prefixIcon: const Icon(
-                                Icons.lock_outline, color: Colors.grey),
+                            prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
@@ -355,31 +244,68 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                                     : Icons.visibility_outlined,
                                 color: Colors.grey,
                               ),
-                              onPressed: () =>
-                                  setState(() =>
-                                  _obscurePassword = !_obscurePassword),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFFBDBDBD)),
+                              borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFFBDBDBD)),
+                              borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFF388E3C), width: 2),
+                              borderSide: const BorderSide(color: Color(0xFF388E3C), width: 2),
                             ),
                           ),
                         ),
 
                         const SizedBox(height: 25),
 
-                        // Error space (reserved so button doesn't jump)
+                        // Next step notice box
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F8E9),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFA5D6A7), width: 1.2),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Icon(Icons.key_outlined, color: Color(0xFF388E3C), size: 20),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Next Step: Join a Company',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF2E7D32),
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      "After signing up you'll be asked to enter an access code provided by your manager to join your company.",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF388E3C),
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Error message space (reserved so button doesn't jump)
                         Container(
                           height: 20,
                           alignment: Alignment.centerLeft,
@@ -387,8 +313,7 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                               ? const SizedBox.shrink()
                               : Text(
                             _errorMessage!,
-                            style: const TextStyle(
-                                color: Colors.red, fontSize: 12),
+                            style: const TextStyle(color: Colors.red, fontSize: 12),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -399,7 +324,7 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _loading ? null : _createManagerAccount,
+                            onPressed: _loading ? null : _createEmployeeAccount,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF388E3C),
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -412,7 +337,9 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                               height: 18,
                               width: 18,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
                                 : const Text(
                               'Create Account',
@@ -433,15 +360,17 @@ class _ManagerSignUpPageState extends State<ManagerSignUpPage> {
                           children: [
                             const Text(
                               'Already have an account?',
-                              style: TextStyle(
-                                  fontSize: 14, color: Color(0xFF424242)),
+                              style: TextStyle(fontSize: 14, color: Color(0xFF424242)),
                             ),
                             TextButton(
-                              onPressed: () =>
-                                  goToPage(context, MyHomePage(title: 'LOGIN')),
+                              onPressed: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => MyHomePage(title: 'LOGIN')),
+                                );
+                              },
                               style: ButtonStyle(
-                                padding: WidgetStateProperty.all(
-                                    EdgeInsets.zero),
+                                padding: WidgetStateProperty.all(EdgeInsets.zero),
                                 minimumSize: WidgetStateProperty.all(Size.zero),
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
