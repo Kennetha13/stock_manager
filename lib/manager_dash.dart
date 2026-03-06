@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+import 'inventory_page.dart';
+import 'manager_reports_page.dart';
+import 'navigator_helper.dart';
 
 class ManagerDashPage extends StatefulWidget {
   const ManagerDashPage({super.key});
@@ -39,19 +42,15 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
     final companyName = (companyData["name"] ?? "").toString();
     final accessCode = (companyData["accessCode"] ?? "").toString();
 
-    return {
-      "name": name,
-      "companyName": companyName,
-      "accessCode": accessCode,
-    };
+    return {"name": name, "companyName": companyName, "accessCode": accessCode};
   }
 
   Future<void> _copyCode(BuildContext context, String code) async {
     await Clipboard.setData(ClipboardData(text: code));
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Access code copied")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Access code copied")));
   }
 
   Widget _quickActionCard({
@@ -99,10 +98,7 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                   width: 160,
                   child: Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 15, color: Colors.grey),
                   ),
                 ),
               ],
@@ -240,12 +236,15 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                               const Text(
                                 "Employee Access Code",
                                 style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey),
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE8F5E9),
@@ -266,7 +265,10 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                                   padding: EdgeInsets.only(top: 6),
                                   child: Text(
                                     "Couldn’t load dashboard data.",
-                                    style: TextStyle(color: Colors.red, fontSize: 12),
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
                             ],
@@ -311,7 +313,7 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                 title: "Check Inventory",
                 subtitle: "View and manage all products in stock.",
                 onPressed: () {
-                  // TODO: navigate to inventory page
+                  goToPage(context, const InventoryPage());
                 },
               ),
 
@@ -322,7 +324,7 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                 title: "Generate Reports",
                 subtitle: "View employee hours, tips, and performance.",
                 onPressed: () {
-                  // TODO: navigate to reports page
+                  goToPage(context, const ManagerReportsPage());
                 },
               ),
 
@@ -382,7 +384,10 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                           radius: 22,
                           backgroundColor: Colors.blue,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                            icon: const Icon(
+                              Icons.arrow_forward,
+                              color: Colors.white,
+                            ),
                             onPressed: () {
                               // TODO: navigate to employee status page
                             },

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -9,11 +10,18 @@ class InventoryPage extends StatefulWidget {
 }
 
 class _InventoryPageState extends State<InventoryPage> {
-
-  final productRef = FirebaseFirestore.instance.collection('Product');
-
   final TextEditingController _searchController = TextEditingController();
-  String _searchText = "";
+  String _searchText = '';
+
+  bool _loadingCompany = true;
+  String? _companyError;
+  String _companyId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCompanyContext();
+  }
 
   @override
   void dispose() {
@@ -21,21 +29,69 @@ class _InventoryPageState extends State<InventoryPage> {
     super.dispose();
   }
 
-//SHOWS ADD POPUP, ON PRESSED FOR FLOATING BUTTON
+  Future<void> _loadCompanyContext() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() {
+        _companyError = 'You must be logged in to view inventory.';
+        _loadingCompany = false;
+      });
+      return;
+    }
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final userData = userDoc.data();
+      final companyId = (userData?['companyId'] ?? '').toString();
+
+      if (companyId.isEmpty) {
+        setState(() {
+          _companyError = 'You are not connected to a company yet.';
+        });
+      } else {
+        setState(() {
+          _companyId = companyId;
+        });
+      }
+    } catch (error) {
+      setState(() {
+        _companyError = error.toString();
+      });
+    } finally {
+      setState(() {
+        _loadingCompany = false;
+      });
+    }
+  }
+
+  CollectionReference<Map<String, dynamic>> _inventoryRef() {
+    return FirebaseFirestore.instance
+        .collection('companies')
+        .doc(_companyId)
+        .collection('inventory');
+  }
+
   void _showAddProductDialog() {
+    if (_companyId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No company inventory found for your account.'),
+        ),
+      );
+      return;
+    }
+
     final nameController = TextEditingController();
     final quantityController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Center(
-            child: const Text(
-                'Add Product',
-                style: TextStyle(
-                    color: Colors.green
-                )
-            )
+        title: const Center(
+          child: Text('Add Product', style: TextStyle(color: Colors.green)),
         ),
         backgroundColor: Colors.white,
         content: Column(
@@ -47,15 +103,12 @@ class _InventoryPageState extends State<InventoryPage> {
                 fillColor: Colors.white,
                 filled: true,
                 labelText: 'Product Name',
-                labelStyle: TextStyle(
-                    color: Colors.black),
+                labelStyle: TextStyle(color: Colors.black),
                 border: OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.words,
             ),
-
             const SizedBox(height: 16),
-
             TextField(
               controller: quantityController,
               decoration: const InputDecoration(
@@ -71,37 +124,44 @@ class _InventoryPageState extends State<InventoryPage> {
         ),
         actions: [
           Container(
-            margin: EdgeInsets.only(right: 60),
+            margin: const EdgeInsets.only(right: 60),
             child: TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.green)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.green),
+              ),
             ),
           ),
           Container(
-            margin: EdgeInsets.only(right: 10),
+            margin: const EdgeInsets.only(right: 10),
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               onPressed: () async {
                 final name = nameController.text.trim();
                 final qtyText = quantityController.text.trim();
                 final qty = int.tryParse(qtyText);
 
-                if (name.isEmpty || qty == null) return;
+                if (name.isEmpty || qty == null) {
+                  return;
+                }
 
                 try {
-                  await productRef.add({
-                    "name": name,
-                    "quantity": qty,
+                  await _inventoryRef().add({
+                    'name': name,
+                    'quantity': qty,
+                    'createdAt': FieldValue.serverTimestamp(),
                   });
 
-                  if (context.mounted) Navigator.pop(context); //screen is still showing
-                } catch (e) {
-                  // Optional: show an error to the user
-                  if (!context.mounted) return;
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                } catch (error) {
+                  if (!context.mounted) {
+                    return;
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Failed to add product: $e")),
+                    SnackBar(content: Text('Failed to add product: $error')),
                   );
                 }
               },
@@ -113,14 +173,15 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  //FOR EDIT ICON, CAN SAVE AND DELETE PRODUCTS FROM DATABASE
   void _showEditProductDialog({
     required String docId,
     required String currentName,
     required int currentQuantity,
   }) {
     final nameController = TextEditingController(text: currentName);
-    final quantityController = TextEditingController(text: currentQuantity.toString());
+    final quantityController = TextEditingController(
+      text: currentQuantity.toString(),
+    );
 
     showDialog(
       context: context,
@@ -128,7 +189,7 @@ class _InventoryPageState extends State<InventoryPage> {
         backgroundColor: Colors.white,
         title: const Center(
           child: Text(
-            "Edit Product",
+            'Edit Product',
             style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
           ),
         ),
@@ -138,7 +199,7 @@ class _InventoryPageState extends State<InventoryPage> {
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
-                labelText: "Product Name",
+                labelText: 'Product Name',
                 border: OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.words,
@@ -148,40 +209,41 @@ class _InventoryPageState extends State<InventoryPage> {
               controller: quantityController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: "Quantity",
+                labelText: 'Quantity',
                 border: OutlineInputBorder(),
               ),
             ),
           ],
         ),
         actions: [
-          // Delete
           TextButton.icon(
             icon: const Icon(Icons.delete, color: Colors.red),
-            label: const Text("Delete", style: TextStyle(color: Colors.red)),
+            label: const Text('Delete', style: TextStyle(color: Colors.red)),
             onPressed: () async {
               final confirm = await _confirmDelete(dialogContext);
-              if (confirm != true) return;
+              if (confirm != true) {
+                return;
+              }
 
               try {
-                await productRef.doc(docId).delete();
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
-              } catch (e) {
-                if (!dialogContext.mounted) return;
+                await _inventoryRef().doc(docId).delete();
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              } catch (error) {
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text("Failed to delete: $e")),
+                  SnackBar(content: Text('Failed to delete: $error')),
                 );
               }
             },
           ),
-
-          // Cancel
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: Colors.green)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.green)),
           ),
-
-          // Save
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             onPressed: () async {
@@ -190,26 +252,33 @@ class _InventoryPageState extends State<InventoryPage> {
 
               if (newName.isEmpty || qty == null) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text("Enter a valid name and quantity.")),
+                  const SnackBar(
+                    content: Text('Enter a valid name and quantity.'),
+                  ),
                 );
                 return;
               }
 
               try {
-                await productRef.doc(docId).update({
-                  "name": newName,
-                  "quantity": qty,
+                await _inventoryRef().doc(docId).update({
+                  'name': newName,
+                  'quantity': qty,
+                  'updatedAt': FieldValue.serverTimestamp(),
                 });
 
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
-              } catch (e) {
-                if (!dialogContext.mounted) return;
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              } catch (error) {
+                if (!dialogContext.mounted) {
+                  return;
+                }
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text("Failed to save: $e")),
+                  SnackBar(content: Text('Failed to save: $error')),
                 );
               }
             },
-            child: const Text("Save", style: TextStyle(color: Colors.white)),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -220,31 +289,41 @@ class _InventoryPageState extends State<InventoryPage> {
     return showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text("Delete product?"),
-        content: const Text("This cannot be undone."),
+        title: const Text('Delete product?'),
+        content: const Text('This cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text("Cancel", style: TextStyle(color: Colors.black)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(c, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-
-  //BUILDS THE LIST OF PRODUCTS
   Widget _buildProductsList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: productRef.orderBy("quantity").snapshots(),
+    if (_loadingCompany) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_companyError != null) {
+      return Center(child: Text(_companyError!));
+    }
+
+    if (_companyId.isEmpty) {
+      return const Center(child: Text('No company inventory available.'));
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _inventoryRef().orderBy('quantity').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Center(child: Text("Error loading products"));
+          return const Center(child: Text('Error loading products'));
         }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -252,34 +331,34 @@ class _InventoryPageState extends State<InventoryPage> {
 
         final docs = snapshot.data!.docs;
 
-        // Local filtering (simple + fast for small lists)
-        // USED FOR SEARCH FIELD
         final filtered = docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final name = (data["name"] ?? "").toString().toLowerCase();
+          final data = doc.data();
+          final name = (data['name'] ?? '').toString().toLowerCase();
           return name.contains(_searchText);
         }).toList();
 
         if (filtered.isEmpty) {
-          return const Center(child: Text("No products found"));
+          return const Center(child: Text('No products found'));
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 90), // space for FAB
+          padding: const EdgeInsets.only(bottom: 90),
           itemCount: filtered.length,
           itemBuilder: (context, index) {
             final doc = filtered[index];
-            final data = doc.data() as Map<String, dynamic>;
+            final data = doc.data();
 
-            final docId = doc.id; // Firestore document id
-            final String name = (data["name"] ?? "").toString();
-            final int quantity = (data["quantity"] ?? 0) is int
-                ? data["quantity"] as int
-                : int.tryParse(data["quantity"].toString()) ?? 0;
+            final docId = doc.id;
+            final name = (data['name'] ?? '').toString();
+            final quantity = (data['quantity'] ?? 0) is int
+                ? data['quantity'] as int
+                : int.tryParse(data['quantity'].toString()) ?? 0;
 
-            final bool lowStock = quantity <= 5;
-            final Color cardColor = lowStock ? Colors.red.shade100 : Colors.green.shade100;
-            final String statusText = lowStock ? "Low stock!" : "In stock";
+            final lowStock = quantity <= 5;
+            final cardColor = lowStock
+                ? Colors.red.shade100
+                : Colors.green.shade100;
+            final statusText = lowStock ? 'Low stock!' : 'In stock';
 
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -294,46 +373,56 @@ class _InventoryPageState extends State<InventoryPage> {
                     CircleAvatar(
                       backgroundColor: Colors.green,
                       child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : "?",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
-
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             name,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             statusText,
                             style: TextStyle(
                               color: lowStock ? Colors.red : Colors.black54,
-                              fontWeight: lowStock ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: lowStock
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
                       ),
                     ),
-
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        "$quantity",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        '$quantity',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-
                     const SizedBox(width: 10),
-
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.green),
                       onPressed: () {
@@ -354,55 +443,49 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-        backgroundColor: Colors.grey[200],
-        appBar: AppBar(
-        title: Text(
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        title: const Text(
           'Inventory',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.green,
       ),
       body: Column(
-          children: [
-            Container(
-                margin: EdgeInsets.all(20),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) => setState(() => _searchText = value.trim().toLowerCase()),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
-                    fillColor: Colors.white,
-                    filled: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25.0),
-                    ),
-                    labelText: 'Search Products..',
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+        children: [
+          Container(
+            margin: const EdgeInsets.all(20),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchText = value.trim().toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                fillColor: Colors.white,
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25.0),
                 ),
+                labelText: 'Search Products..',
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
               ),
-            Expanded(child: _buildProductsList()),
-          ]
-        ),
-
-
-
-
+            ),
+          ),
+          Expanded(child: _buildProductsList()),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddProductDialog,
+        onPressed: _companyId.isEmpty ? null : _showAddProductDialog,
         backgroundColor: Colors.green,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Product',style: TextStyle(color: Colors.white)),
+        label: const Text('Add Product', style: TextStyle(color: Colors.white)),
       ),
-
     );
   }
 }
