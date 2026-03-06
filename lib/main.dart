@@ -13,9 +13,7 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -50,6 +48,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -145,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (selectedRole != role) {
       setState(() {
         _errorMessage =
-        "This account is a $role account. Please select $role and try again.";
+            "This account is a $role account. Please select $role and try again.";
       });
       await _auth.signOut(); // keep flow clean
       return;
@@ -245,10 +244,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               const Text(
                 'Manage your inventory with ease',
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 15, color: Colors.grey),
               ),
 
               const SizedBox(height: 10),
@@ -279,9 +275,29 @@ class _MyHomePageState extends State<MyHomePage> {
                 margin: const EdgeInsets.only(left: 25, right: 25),
                 child: TextField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
                     labelText: 'Email',
+                    hintText: 'you@email.com',
+                    prefixIcon: const Icon(
+                      Icons.email_outlined,
+                      color: Colors.grey,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF388E3C),
+                        width: 2,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -292,10 +308,42 @@ class _MyHomePageState extends State<MyHomePage> {
                 margin: const EdgeInsets.only(left: 25, right: 25, bottom: 5),
                 child: TextField(
                   controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
                     labelText: 'Password',
+                    hintText: '••••••••',
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: Colors.grey,
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF388E3C),
+                        width: 2,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -308,9 +356,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: _errorMessage == null
                     ? const SizedBox.shrink()
                     : Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red, fontSize: 12),
-                ),
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                      ),
               ),
 
               Container(
@@ -327,17 +375,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   onPressed: _isLoading ? null : _login,
                   child: _isLoading
                       ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Text(
-                    'Login',
-                    style: TextStyle(fontSize: 20, color: Colors.white),
-                  ),
+                          'Login',
+                          style: TextStyle(fontSize: 20, color: Colors.white),
+                        ),
                 ),
               ),
 
@@ -398,7 +446,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),

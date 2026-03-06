@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'styled_app_bar.dart';
 
 class EmployeeTimeLogPage extends StatefulWidget {
   const EmployeeTimeLogPage({super.key});
@@ -39,6 +40,32 @@ class _EmployeeTimeLogPageState extends State<EmployeeTimeLogPage> {
 
   String _dateLabel(DateTime date) {
     return '${date.month}/${date.day}/${date.year}';
+  }
+
+  Future<DateTime?> _pickGreenDate(DateTime initialDate) {
+    return showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF388E3C),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF388E3C),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
   }
 
   Future<void> _loadProfile() async {
@@ -82,12 +109,7 @@ class _EmployeeTimeLogPageState extends State<EmployeeTimeLogPage> {
   }
 
   Future<void> _pickDate() async {
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
+    final selected = await _pickGreenDate(_selectedDate);
 
     if (selected != null) {
       setState(() {
@@ -199,12 +221,7 @@ class _EmployeeTimeLogPageState extends State<EmployeeTimeLogPage> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             Future<void> pickEditDate() async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: selectedDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2100),
-              );
+              final picked = await _pickGreenDate(selectedDate);
 
               if (picked != null) {
                 setDialogState(() {
@@ -301,7 +318,10 @@ class _EmployeeTimeLogPageState extends State<EmployeeTimeLogPage> {
             return AlertDialog(
               title: const Text(
                 'Edit Shift Entry',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -319,8 +339,15 @@ class _EmployeeTimeLogPageState extends State<EmployeeTimeLogPage> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF388E3C),
+                            width: 2,
+                          ),
+                        ),
                         labelText: 'Hours',
                       ),
                     ),
@@ -330,8 +357,15 @@ class _EmployeeTimeLogPageState extends State<EmployeeTimeLogPage> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF388E3C),
+                            width: 2,
+                          ),
+                        ),
                         labelText: 'Tips',
                       ),
                     ),
@@ -356,7 +390,10 @@ class _EmployeeTimeLogPageState extends State<EmployeeTimeLogPage> {
                       : () {
                           Navigator.pop(dialogContext);
                         },
-                  child: const Text('Cancel'),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.green),
+                  ),
                 ),
                 TextButton(
                   onPressed: updating ? null : deleteShift,
@@ -494,13 +531,7 @@ class _EmployeeTimeLogPageState extends State<EmployeeTimeLogPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        title: const Text(
-          'Log Hours & Tips',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.green,
-      ),
+      appBar: buildPrimaryAppBar(context, title: 'Log Hours & Tips'),
       body: _loadingProfile
           ? const Center(child: CircularProgressIndicator())
           : Column(

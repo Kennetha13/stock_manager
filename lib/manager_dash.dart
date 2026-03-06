@@ -1,10 +1,14 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'inventory_page.dart';
+import 'manager_employee_status_page.dart';
 import 'manager_reports_page.dart';
 import 'navigator_helper.dart';
+import 'styled_app_bar.dart';
 
 class ManagerDashPage extends StatefulWidget {
   const ManagerDashPage({super.key});
@@ -14,6 +18,125 @@ class ManagerDashPage extends StatefulWidget {
 }
 
 class _ManagerDashPageState extends State<ManagerDashPage> {
+  bool _isRegeneratingCode = false;
+
+  String _generateAccessCode({int length = 4}) {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    final rand = Random();
+    return List.generate(
+      length,
+      (_) => chars[rand.nextInt(chars.length)],
+    ).join();
+  }
+
+  Future<String> _reserveUniqueAccessCode(String companyId) async {
+    final db = FirebaseFirestore.instance;
+    while (true) {
+      final code = _generateAccessCode(length: 4);
+      final codeRef = db.collection("accessCodes").doc(code);
+      final snap = await codeRef.get();
+      if (!snap.exists) {
+        await codeRef.set({
+          "companyId": companyId,
+          "createdAt": FieldValue.serverTimestamp(),
+        });
+        return code;
+      }
+    }
+  }
+
+  Future<void> _regenerateAccessCode() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text(
+          "Generate New Access Code?",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+        ),
+        content: const Text(
+          "Employees will need to use the new code from now on.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.green)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              "Generate",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    setState(() {
+      _isRegeneratingCode = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception("Not logged in");
+      }
+
+      final db = FirebaseFirestore.instance;
+      final userDoc = await db.collection("users").doc(user.uid).get();
+      final userData = userDoc.data();
+      final companyId = (userData?["companyId"] ?? "").toString();
+      if (companyId.isEmpty) {
+        throw Exception("No company assigned");
+      }
+
+      final companyRef = db.collection("companies").doc(companyId);
+      final companyDoc = await companyRef.get();
+      final oldCode = (companyDoc.data()?["accessCode"] ?? "").toString();
+
+      final newCode = await _reserveUniqueAccessCode(companyId);
+
+      final batch = db.batch();
+      batch.set(companyRef, {
+        "accessCode": newCode,
+        "updatedAt": FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (oldCode.isNotEmpty && oldCode != newCode) {
+        batch.delete(db.collection("accessCodes").doc(oldCode));
+      }
+
+      await batch.commit();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("New access code generated: $newCode")),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to generate code: $error")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRegeneratingCode = false;
+        });
+      }
+    }
+  }
+
   // ✅ One fetch for everything needed on this page (name + company + access code)
   Future<Map<String, String>> _fetchDashboardData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -135,22 +258,13 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
 
         return Scaffold(
           backgroundColor: Colors.grey[200],
-          appBar: AppBar(
-            title: const Text(
-              'Manager Dashboard',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            backgroundColor: Colors.green,
-          ),
+          appBar: buildPrimaryAppBar(context, title: 'Manager Dashboard'),
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Welcome card (now shows real name)
               Expanded(
-                flex: 15,
+                flex: 14,
                 child: Container(
                   margin: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -175,7 +289,7 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 15),
+                          const SizedBox(height: 12),
                           const Text(
                             'Welcome back,',
                             style: TextStyle(fontSize: 20, color: Colors.grey),
@@ -280,9 +394,35 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                           backgroundColor: Colors.green,
                           child: IconButton(
                             icon: const Icon(Icons.copy, color: Colors.white),
-                            onPressed: (loading || accessCode.isEmpty)
+                            onPressed:
+                                (loading ||
+                                    accessCode.isEmpty ||
+                                    _isRegeneratingCode)
                                 ? null
                                 : () => _copyCode(context, accessCode),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Colors.green,
+                          child: IconButton(
+                            icon: _isRegeneratingCode
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.refresh,
+                                    color: Colors.white,
+                                  ),
+                            onPressed: (loading || _isRegeneratingCode)
+                                ? null
+                                : _regenerateAccessCode,
                           ),
                         ),
                       ],
@@ -291,7 +431,7 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 2),
 
               const Padding(
                 padding: EdgeInsets.only(left: 20),
@@ -389,7 +529,10 @@ class _ManagerDashPageState extends State<ManagerDashPage> {
                               color: Colors.white,
                             ),
                             onPressed: () {
-                              // TODO: navigate to employee status page
+                              goToPage(
+                                context,
+                                const ManagerEmployeeStatusPage(),
+                              );
                             },
                           ),
                         ),

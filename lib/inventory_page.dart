@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'styled_app_bar.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -105,6 +106,9 @@ class _InventoryPageState extends State<InventoryPage> {
                 labelText: 'Product Name',
                 labelStyle: TextStyle(color: Colors.black),
                 border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF388E3C), width: 2),
+                ),
               ),
               textCapitalization: TextCapitalization.words,
             ),
@@ -117,6 +121,9 @@ class _InventoryPageState extends State<InventoryPage> {
                 labelText: 'Quantity',
                 labelStyle: TextStyle(color: Colors.black),
                 border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF388E3C), width: 2),
+                ),
               ),
               keyboardType: TextInputType.number,
             ),
@@ -201,6 +208,9 @@ class _InventoryPageState extends State<InventoryPage> {
               decoration: const InputDecoration(
                 labelText: 'Product Name',
                 border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF388E3C), width: 2),
+                ),
               ),
               textCapitalization: TextCapitalization.words,
             ),
@@ -211,6 +221,9 @@ class _InventoryPageState extends State<InventoryPage> {
               decoration: const InputDecoration(
                 labelText: 'Quantity',
                 border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF388E3C), width: 2),
+                ),
               ),
             ),
           ],
@@ -447,13 +460,7 @@ class _InventoryPageState extends State<InventoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        title: const Text(
-          'Inventory',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.green,
-      ),
+      appBar: buildPrimaryAppBar(context, title: 'Inventory'),
       body: Column(
         children: [
           Container(

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'styled_app_bar.dart';
 
 class ManagerReportsPage extends StatefulWidget {
   const ManagerReportsPage({super.key});
@@ -38,14 +39,35 @@ class _ManagerReportsPageState extends State<ManagerReportsPage> {
     return double.tryParse(value.toString()) ?? 0;
   }
 
-  Future<void> _pickDate({required bool isStart}) async {
-    final initialDate = isStart ? _startDate : _endDate;
-    final selected = await showDatePicker(
+  Future<DateTime?> _pickGreenDate(DateTime initialDate) {
+    return showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF388E3C),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF388E3C),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
+  }
+
+  Future<void> _pickDate({required bool isStart}) async {
+    final initialDate = isStart ? _startDate : _endDate;
+    final selected = await _pickGreenDate(initialDate);
 
     if (selected == null) {
       return;
@@ -195,13 +217,7 @@ class _ManagerReportsPageState extends State<ManagerReportsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        title: const Text(
-          'Generate Reports',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.green,
-      ),
+      appBar: buildPrimaryAppBar(context, title: 'Generate Reports'),
       body: Column(
         children: [
           Container(
