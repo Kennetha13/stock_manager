@@ -1,16 +1,71 @@
-# stock_mananger_1
+# Flutter Stock Manager
 
-A new Flutter project.
+A multi-tenant inventory and workforce management mobile app built with **Flutter** and **Firebase**, designed for restaurants and small businesses to manage stock, employee access, and shift logging in one centralized platform.
 
-## Getting Started
+## Overview
 
-This project is a starting point for a Flutter application.
+Flutter Stock Manager helps businesses organize and monitor operational data across separate company accounts. Managers can create and manage their own company workspace, track inventory, and oversee employee activity, while employees can securely log work hours and tips within the correct business environment.
 
-A few resources to get you started if this is your first Flutter project:
+This project is currently in progress and is being developed as a scalable mobile solution with role-based access and cloud-backed data storage.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Features
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Role-based access**
+  - Manager and employee user flows
+  - Separate dashboards and permissions for each role
+
+- **Multi-tenant company structure**
+  - Each manager can create and manage a unique company
+  - Company data is isolated so each business has its own products, employees, and logs
+
+- **Inventory management**
+  - Add, edit, delete, and search products
+  - Track product names and quantities in real time
+
+- **Employee time logging**
+  - Employees can submit worked hours and tips
+  - Logs are associated with their company and profile
+
+- **Firebase Authentication**
+  - Secure login and account creation
+  - Supports role-based user management
+
+- **Cloud Firestore integration**
+  - Stores company, employee, inventory, and log data
+  - Real-time backend support for scalable updates
+
+## Tech Stack
+
+- **Frontend:** Flutter, Dart
+- **Backend / Database:** Firebase Firestore
+- **Authentication:** Firebase Authentication
+- **Architecture Focus:** Multi-tenant data modeling, role-based access control, scalable cloud data organization
+
+## Why This Project
+
+Many restaurants and small businesses still rely on fragmented tools or manual processes to manage inventory and employee records. This project aims to simplify those workflows by combining:
+
+- inventory tracking,
+- employee management,
+- shift logging,
+- and company-specific data separation
+
+into one mobile application.
+
+
+## Example Firestore Structure
+
+```text
+companies/
+  {companyId}/
+    info/
+    products/
+    employees/
+    time_logs/
+
+users/
+  {userId}
+    - role
+    - companyId
+    - name
+    - email
